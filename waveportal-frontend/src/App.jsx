@@ -42,10 +42,13 @@ const findMetaMaskAccount = async () => {
 const App = () => {
   const [currentAccount, setCurrentAccount] = useState("");
 
+  const [value, setValue] = useState('');
+
    /**
    * Create a variable here that holds the contract address after you deploy!
    */
-  const contractAddress = "0x221a845Be8d9809C66908e48446C593b0dF7837a";
+  const [allWaves, setAllWaves] = useState([]);
+  const contractAddress = "0xF2C2105b8C2Fb8588B17a54B3494CcC40d61fd2E";
 
   const contractABI = abi.abi;
 
@@ -84,7 +87,8 @@ const App = () => {
         /*
         * Execute the actual wave from your smart contract
         */
-        const waveTxn = await wavePortalContract.wave();
+        
+        const waveTxn = await wavePortalContract.wave(value);
         console.log("Mining...", waveTxn.hash);
 
         await waveTxn.wait();
@@ -100,6 +104,39 @@ const App = () => {
     }
   };
 
+  const getAllWaves = async() => {
+    try {
+      const { ethereum } = window;
+      if (ethereum) {
+        const provider = new ethers.providers.Web3Provider(ethereum);
+        const signer = provider.getSigner();
+        const wavePortalContract = new ethers.Contract(contractAddress, contractABI, signer);
+
+        // call the getAllWaves method from the smart contract
+        const waves = await wavePortalContract.getAllWaves();
+
+        let wavesCleaned = [];
+        waves.forEach(wave => {
+          wavesCleaned.push({
+            address: wave.waver,
+            timestamp: new Date(wave.timestamp * 1000),
+            message: wave.message
+          });
+        });
+
+        setAllWaves(wavesCleaned);
+      } else {
+        console.log("Ethereum object doesn't exist!");
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  const handleChange = (event) => {
+    setValue(event.target.value);
+  };
+
   /*
    * This runs our function when the page loads.
    * More technically, when the App component "mounts".
@@ -110,7 +147,7 @@ const App = () => {
       setCurrentAccount(account);
     }
   }, []);
-
+        
   return (
     <div className="mainContainer">
       <div className="dataContainer">
@@ -119,22 +156,32 @@ const App = () => {
         </div>
 
         <div className="bio">
-          I am Farza and I worked on self-driving cars so that's pretty cool
-          right? Connect your Ethereum wallet and wave at me!
+          I am Bigotry and I worked on nft real estate. so that's pretty cool right? Connect your Ethereum wallet and wave at me!
         </div>
 
         <button className="waveButton" onClick={wave}>
           Wave at Me
         </button>
 
-        {/*
-         * If there is no currentAccount render this button
-         */}
+        <label>
+          Textbox:
+          <input type="text" value={value} onChange={handleChange} />
+        </label>
+
         {!currentAccount && (
           <button className="waveButton" onClick={connectWallet}>
             Connect Wallet
           </button>
         )}
+
+        {allWaves.map((wave, index) => {
+          return (
+            <div key={index} style={{ backgroundColor: "OldLace", marginTop: "16px", padding: "8px" }}>
+              <div>Address: {wave.address}</div>
+              <div>Time: {wave.timestamp.toString()}</div>
+              <div>Message: {wave.message}</div>
+            </div>)
+        })}
       </div>
     </div>
   );
