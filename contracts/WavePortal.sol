@@ -6,6 +6,7 @@ import "hardhat/console.sol";
 
 contract WavePortal {
     uint256 totalWaves;
+    uint256 private seed;
 
     /*
      * A little magic, Google what events are in Solidity!
@@ -28,8 +29,11 @@ contract WavePortal {
      */
     Wave[] waves;
 
-    constructor() {
+    mapping(address => uint256) public lastWavedAt;
+
+    constructor() payable {
         console.log("I AM SMART CONTRACT. POG.");
+        seed = (block.timestamp + block.difficulty) % 100;
     }
 
     /*
@@ -38,6 +42,10 @@ contract WavePortal {
      * sends us from the frontend!
      */
     function wave(string memory _message) public {
+        require(lastWavedAt[msg.sender] + 1 minutes < block.timestamp, "Wait 1 min");
+
+        lastWavedAt[msg.sender] = block.timestamp;
+
         totalWaves += 1;
         console.log("%s waved w/ message %s", msg.sender, _message);
 
@@ -46,10 +54,20 @@ contract WavePortal {
          */
         waves.push(Wave(msg.sender, _message, block.timestamp));
 
-        /*
-         * I added some fanciness here, Google it and try to figure out what it is!
-         * Let me know what you learn in #general-chill-chat
-         */
+        seed = (block.timestamp + block.difficulty + seed) % 100;
+
+        console.log("Random # generated: %d", seed);
+
+        if (seed <= 50) {
+            console.log("%s won!", msg.sender);
+
+            uint256 prizeAmount = 0.0001 ether;
+
+            require(prizeAmount <= address(this).balance, "Contract has no more money to pay");
+            (bool success, ) = (msg.sender).call{value: prizeAmount}("");
+            require(success, "Failed to withdraw money from contract.");
+        }
+
         emit NewWave(msg.sender, block.timestamp, _message);
     }
 
